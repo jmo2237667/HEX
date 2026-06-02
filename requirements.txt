@@ -1,0 +1,10 @@
+Adafruit-Blinka
+adafruit-circuitpython-pca9685
+adafruit-circuitpython-motor
+evdev
+scikit-learn
+numpy
+flask
+opencv-python-headless
+gpiozero
+mpu6050-raspberrypi

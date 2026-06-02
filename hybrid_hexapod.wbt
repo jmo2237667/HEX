@@ -1,0 +1,570 @@
+#VRML_SIM R2023b utf8
+
+WorldInfo {
+  basicTimeStep 32
+  coordinateSystem "ENU"
+  gravity 9.81
+  title "MicroHex Hexapod Simulation"
+}
+
+Viewpoint {
+  orientation 0.577 -0.577 -0.577 2.094
+  position 0.5 -0.5 0.5
+}
+
+Background {
+  skyColor [ 0.53 0.74 0.95 ]
+}
+
+DirectionalLight {
+  ambientIntensity 0.6
+  direction -1 -1 -1
+  intensity 1.2
+  castShadows TRUE
+}
+
+# ── Ground plane (static, no physics node = immovable) ──
+Solid {
+  translation 0 0 -0.025
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.42 0.52 0.30
+        roughness 1.0
+        metalness 0.0
+      }
+      geometry Box { size 6 6 0.05 }
+    }
+  ]
+  boundingObject Box { size 6 6 0.05 }
+  name "ground"
+}
+
+# ── Robot ───────────────────────────────────────────────
+Robot {
+  name "hexapod"
+  translation 0 0 0.15
+  children [
+
+    # ── Chassis meshes ────────────────────────────
+    Shape {
+      appearance PBRAppearance { baseColor 0.10 0.10 0.10 roughness 0.4 metalness 0.1 }
+      geometry Mesh { url "protos/chassis-baseplate.stl" }
+    }
+    Shape {
+      appearance PBRAppearance { baseColor 0.12 0.12 0.12 roughness 0.5 }
+      geometry Mesh { url "protos/chassis-electronicsplate.stl" }
+    }
+    Shape {
+      appearance PBRAppearance { baseColor 0.15 0.15 0.15 roughness 0.5 }
+      geometry Mesh { url "protos/chassis-batterydoor.stl" }
+    }
+
+    # ── HC-SR04 Ultrasonic Sensor (front-facing) ──
+    DistanceSensor {
+      name "ultrasonic_front"
+      translation 0.075 0 0.01
+      rotation 0 1 0 1.5708
+      lookupTable [
+        0      0    0
+        0.02   0.02 0
+        4.0    4.0  0.02
+      ]
+      type "sonar"
+      aperture 0.26
+    }
+
+    # ── GY-521 / MPU-6050 IMU ─────────────────────
+    InertialUnit {
+      name "imu"
+      translation 0 0 0.005
+    }
+    Gyro {
+      name "gyro"
+      translation 0 0 0.005
+    }
+
+    # ── Raspberry Pi Wide-Lens Camera ─────────────
+    Camera {
+      name "pi_camera"
+      translation 0.074 0 0.02
+      rotation 0 1 0 -1.5708
+      width 320
+      height 240
+      fieldOfView 2.094
+      near 0.01
+    }
+
+    # --- front_left (3-DOF) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor 0.06 0.05 0
+      }
+      device [
+        RotationalMotor {
+          name "front_left_coxa"
+          minPosition -1.047
+          maxPosition  1.047
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "front_left_shoulder"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-left.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0.029 0
+            }
+            device [
+              RotationalMotor {
+                name "front_left_femur"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "front_left_upper_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+                  geometry Mesh { url "protos/leg-leg.stl" }
+                }
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 1 0 0
+                    anchor 0 0.04 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "front_left_tibia"
+                      minPosition -1.570
+                      maxPosition  1.570
+                      maxVelocity  6.0
+                    }
+                  ]
+                  endPoint Solid {
+                    name "front_left_lower_leg"
+                    children [
+                      Shape {
+                        appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                        geometry Mesh { url "protos/foot-left.stl" }
+                      }
+                    ]
+                    boundingObject Transform {
+                      translation 0 0.075 0
+                      children [ Sphere { radius 0.012 } ]
+                    }
+                    physics Physics { density -1 mass 0.0143 }
+                  }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 0.02 0
+                children [ Cylinder { radius 0.012 height 0.04 } ]
+              }
+              physics Physics { density -1 mass 0.0179 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 0.0145 0
+          children [ Cylinder { radius 0.015 height 0.029 } ]
+        }
+        physics Physics { density -1 mass 0.0177 }
+      }
+    }
+    # --- rear_left (3-DOF) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor -0.06 0.05 0
+      }
+      device [
+        RotationalMotor {
+          name "rear_left_coxa"
+          minPosition -1.047
+          maxPosition  1.047
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "rear_left_shoulder"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-left.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0.029 0
+            }
+            device [
+              RotationalMotor {
+                name "rear_left_femur"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "rear_left_upper_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+                  geometry Mesh { url "protos/leg-leg.stl" }
+                }
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 1 0 0
+                    anchor 0 0.04 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "rear_left_tibia"
+                      minPosition -1.570
+                      maxPosition  1.570
+                      maxVelocity  6.0
+                    }
+                  ]
+                  endPoint Solid {
+                    name "rear_left_lower_leg"
+                    children [
+                      Shape {
+                        appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                        geometry Mesh { url "protos/foot-left.stl" }
+                      }
+                    ]
+                    boundingObject Transform {
+                      translation 0 0.075 0
+                      children [ Sphere { radius 0.012 } ]
+                    }
+                    physics Physics { density -1 mass 0.0143 }
+                  }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 0.02 0
+                children [ Cylinder { radius 0.012 height 0.04 } ]
+              }
+              physics Physics { density -1 mass 0.0179 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 0.0145 0
+          children [ Cylinder { radius 0.015 height 0.029 } ]
+        }
+        physics Physics { density -1 mass 0.0177 }
+      }
+    }
+    # --- middle_left (2-DOF, no coxa) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 1 0 0
+        anchor 0 0.07 0
+      }
+      device [
+        RotationalMotor {
+          name "middle_left_femur"
+          minPosition -1.570
+          maxPosition  1.570
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "middle_left_upper_leg"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-left.stl" }
+          }
+          Shape {
+            appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+            geometry Mesh { url "protos/leg-leg.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 0.04 0
+            }
+            device [
+              RotationalMotor {
+                name "middle_left_tibia"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "middle_left_lower_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                  geometry Mesh { url "protos/foot-left.stl" }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 0.075 0
+                children [ Sphere { radius 0.012 } ]
+              }
+              physics Physics { density -1 mass 0.0277 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 0.02 0
+          children [ Cylinder { radius 0.015 height 0.04 } ]
+        }
+        physics Physics { density -1 mass 0.0221 }
+      }
+    }
+    # --- front_right (3-DOF) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor 0.06 -0.05 0
+      }
+      device [
+        RotationalMotor {
+          name "front_right_coxa"
+          minPosition -1.047
+          maxPosition  1.047
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "front_right_shoulder"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-right.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 -0.029 0
+            }
+            device [
+              RotationalMotor {
+                name "front_right_femur"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "front_right_upper_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+                  geometry Mesh { url "protos/leg-leg.stl" }
+                }
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 1 0 0
+                    anchor 0 -0.04 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "front_right_tibia"
+                      minPosition -1.570
+                      maxPosition  1.570
+                      maxVelocity  6.0
+                    }
+                  ]
+                  endPoint Solid {
+                    name "front_right_lower_leg"
+                    children [
+                      Shape {
+                        appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                        geometry Mesh { url "protos/foot-right.stl" }
+                      }
+                    ]
+                    boundingObject Transform {
+                      translation 0 -0.075 0
+                      children [ Sphere { radius 0.012 } ]
+                    }
+                    physics Physics { density -1 mass 0.0143 }
+                  }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 -0.02 0
+                children [ Cylinder { radius 0.012 height 0.04 } ]
+              }
+              physics Physics { density -1 mass 0.0179 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 -0.0145 0
+          children [ Cylinder { radius 0.015 height 0.029 } ]
+        }
+        physics Physics { density -1 mass 0.0177 }
+      }
+    }
+    # --- rear_right (3-DOF) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 0 0 1
+        anchor -0.06 -0.05 0
+      }
+      device [
+        RotationalMotor {
+          name "rear_right_coxa"
+          minPosition -1.047
+          maxPosition  1.047
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "rear_right_shoulder"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-right.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 -0.029 0
+            }
+            device [
+              RotationalMotor {
+                name "rear_right_femur"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "rear_right_upper_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+                  geometry Mesh { url "protos/leg-leg.stl" }
+                }
+                HingeJoint {
+                  jointParameters HingeJointParameters {
+                    axis 1 0 0
+                    anchor 0 -0.04 0
+                  }
+                  device [
+                    RotationalMotor {
+                      name "rear_right_tibia"
+                      minPosition -1.570
+                      maxPosition  1.570
+                      maxVelocity  6.0
+                    }
+                  ]
+                  endPoint Solid {
+                    name "rear_right_lower_leg"
+                    children [
+                      Shape {
+                        appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                        geometry Mesh { url "protos/foot-right.stl" }
+                      }
+                    ]
+                    boundingObject Transform {
+                      translation 0 -0.075 0
+                      children [ Sphere { radius 0.012 } ]
+                    }
+                    physics Physics { density -1 mass 0.0143 }
+                  }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 -0.02 0
+                children [ Cylinder { radius 0.012 height 0.04 } ]
+              }
+              physics Physics { density -1 mass 0.0179 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 -0.0145 0
+          children [ Cylinder { radius 0.015 height 0.029 } ]
+        }
+        physics Physics { density -1 mass 0.0177 }
+      }
+    }
+    # --- middle_right (2-DOF, no coxa) ---
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        axis 1 0 0
+        anchor 0 -0.07 0
+      }
+      device [
+        RotationalMotor {
+          name "middle_right_femur"
+          minPosition -1.570
+          maxPosition  1.570
+          maxVelocity  6.0
+        }
+      ]
+      endPoint Solid {
+        name "middle_right_upper_leg"
+        children [
+          Shape {
+            appearance PBRAppearance { baseColor 0.2 0.2 0.2 roughness 0.5 }
+            geometry Mesh { url "protos/shoulder-right.stl" }
+          }
+          Shape {
+            appearance PBRAppearance { baseColor 0.25 0.25 0.25 roughness 0.5 }
+            geometry Mesh { url "protos/leg-leg.stl" }
+          }
+          HingeJoint {
+            jointParameters HingeJointParameters {
+              axis 1 0 0
+              anchor 0 -0.04 0
+            }
+            device [
+              RotationalMotor {
+                name "middle_right_tibia"
+                minPosition -1.570
+                maxPosition  1.570
+                maxVelocity  6.0
+              }
+            ]
+            endPoint Solid {
+              name "middle_right_lower_leg"
+              children [
+                Shape {
+                  appearance PBRAppearance { baseColor 0.8 0.15 0.1 roughness 0.4 }
+                  geometry Mesh { url "protos/foot-right.stl" }
+                }
+              ]
+              boundingObject Transform {
+                translation 0 -0.075 0
+                children [ Sphere { radius 0.012 } ]
+              }
+              physics Physics { density -1 mass 0.0277 }
+            }
+          }
+        ]
+        boundingObject Transform {
+          translation 0 -0.02 0
+          children [ Cylinder { radius 0.015 height 0.04 } ]
+        }
+        physics Physics { density -1 mass 0.0221 }
+      }
+    }
+
+  ]
+
+  controller "hybrid_gait_controller"
+
+  boundingObject Box { size 0.148 0.172 0.030 }
+  physics Physics {
+    density -1
+    mass 0.4262
+  }
+}
